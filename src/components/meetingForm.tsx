@@ -14,13 +14,13 @@ export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
 
     const { RangePicker } = DatePicker;
 
-    const range = (start: number, end: number) => {
-        const result = [];
-        for (let i = start; i < end; i++) {
-          result.push(i);
-        }
-        return result;
-      };
+    // const range = (start: number, end: number) => {
+    //     const result = [];
+    //     for (let i = start; i < end; i++) {
+    //       result.push(i);
+    //     }
+    //     return result;
+    //   };
 
     const initialValues = {
         visitorType: 'General',
@@ -63,25 +63,23 @@ export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
         } catch (error) {}
     };
 
-    console.log(formik.errors);
-
     const disabledDate: RangePickerProps['disabledDate'] = (current) => {
         const endOfPreviousDay = dayjs().subtract(1, 'day').endOf('day');
         return current && current < endOfPreviousDay
     };
 
-    const disabledRangeTime: RangePickerProps['disabledTime'] = (_, type) => {
+    // const disabledRangeTime: RangePickerProps['disabledTime'] = (_, type) => {
 
-        const currentDateTime = dayjs();
+    //     const currentDateTime = dayjs();
 
-        const currentHour = currentDateTime.hour();
-        const currentMinute = currentDateTime.minute();
+    //     const currentHour = currentDateTime.hour();
+    //     const currentMinute = currentDateTime.minute();
 
-        return {
-          disabledHours: () => range(0, 60).splice(0, currentHour),
-          disabledMinutes: () => range(0, currentMinute),
-        };
-      };
+    //     return {
+    //       disabledHours: () => range(0, 60).splice(0, currentHour),
+    //       disabledMinutes: () => range(0, currentMinute),
+    //     };
+    //   };
       
 
     const onRangeChange = (dates: any, setFieldValue: any) => {
@@ -141,7 +139,6 @@ export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
                     <RangePicker size="large" className={`w-full p-2 border ${formik.touched.fromDateTime && formik.errors.fromDateTime ? 'border border-errorRed': ''}`}
                         showTime 
                         disabledDate={disabledDate}
-                        // disabledTime={disabledRangeTime}
                         format="YYYY/MM/DD HH:mm"
                         onChange={(event) => { onRangeChange(event, formik.setFieldValue) }}
                     />

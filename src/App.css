@@ -36,3 +36,12 @@
     transform: rotate(360deg);
   }
 }
+
+tr:nth-child(even) {
+  background-color: #f2f2f2; /* Light gray */
+}
+
+/* Apply background color to odd rows (if needed) */
+tr:nth-child(odd) {
+  background-color: #ffffff; /* White */
+}

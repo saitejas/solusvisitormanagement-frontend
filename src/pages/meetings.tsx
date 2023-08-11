@@ -35,8 +35,10 @@ export const MeetingsPage = () => {
             {user === userType.EMPLOYEE && <div>
                 <button onClick={() => setShowModal(true)}>Create Meeting</button>
             </div>}
-            <div>
-               <MeetingList meetingsData={meetings} />
+            <div className=''>
+                <div className='w-full flex justify-center items-center'>
+                <MeetingList data={meetings} />
+                </div>
             </div>
         </div>
     )
