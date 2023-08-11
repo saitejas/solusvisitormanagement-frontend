@@ -51,7 +51,8 @@ export function MeetingList({ data }: { data: Meeting[] }) {
     }
 
 
-    const deleteMeeting = async (id: string | undefined) => {
+    const deleteMeeting = async () => {
+        const id = meetingToBeDeleted?._id;
         try {
             setShowDeleteConfirmationModal(false);
             await axios.delete(`${SOLUS_HOST}/meetings/${id}`);
@@ -102,7 +103,7 @@ export function MeetingList({ data }: { data: Meeting[] }) {
                 <EditMeeting meeting={meetingToBeUpdated} closeModal={() => { setShowEditModal(false); }} updateData={(meeting: Meeting) => updateMeeting(meeting)} />
           </Modal>
           <Modal center closeOnOverlayClick={false} open={showDeleteConfirmation} onClose={() => setShowDeleteConfirmationModal(false)}>
-                <ConfirmationModal confirmationMessage={ConfirmationMessage.CONFIRM_DELETE} cancel={() => { setShowDeleteConfirmationModal(false); }} confirm={() => deleteMeeting(meetingToBeDeleted?._id)} />
+                <ConfirmationModal confirmationMessage={ConfirmationMessage.CONFIRM_DELETE} cancel={() => { setShowDeleteConfirmationModal(false); }} confirm={() => { deleteMeeting(); }} />
           </Modal>
           {meetingsData.length > 0 && (
             <div>
@@ -152,7 +153,7 @@ export function MeetingList({ data }: { data: Meeting[] }) {
                         ))}
                         <td className="flex items-center mt-[16px]">
                         {canUpdateMeeting(item) && <span><img onClick={() => triggerUpdate(item)} alt="edit" className="h-[16px] w-[16px] mr-[10px]" src={require("../assets/images/edit.png")} /></span>}
-                        {canDeleteMeeting(item) && <span><img onClick={() => deleteMeeting(item._id)} alt="delete" className="h-[16px] w-[16px]" src={require("../assets/images/bin.png")} /></span>}
+                        {canDeleteMeeting(item) && <span><img onClick={() => triggerDelete(item)} alt="delete" className="h-[16px] w-[16px]" src={require("../assets/images/bin.png")} /></span>}
                     </td>
                       </tr>
                     ))}
