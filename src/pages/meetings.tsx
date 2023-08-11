@@ -78,7 +78,7 @@ export const MeetingsPage = () => {
                     <button className='bg-primaryColor text-white px-[26px] py-[6px] rounded mr-[10px]' onClick={() => setShowModal(true)}>Create Meeting</button>
                 </div>}
             </div>
-            <div className=''>
+            <div>
                 <div className='w-full flex justify-center items-center'>
                 <MeetingList data={meetings} />
                 </div>

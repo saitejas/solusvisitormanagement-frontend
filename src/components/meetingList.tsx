@@ -98,7 +98,7 @@ export function MeetingList({ data }: { data: Meeting[] }) {
     }
 
     return (
-        <div>
+        <div className="w-full flex justify-center">
           <Modal center closeOnOverlayClick={false} open={showEditModal} onClose={() => setShowEditModal(false)}>
                 <EditMeeting meeting={meetingToBeUpdated} closeModal={() => { setShowEditModal(false); }} updateData={(meeting: Meeting) => updateMeeting(meeting)} />
           </Modal>
@@ -106,62 +106,60 @@ export function MeetingList({ data }: { data: Meeting[] }) {
                 <ConfirmationModal confirmationMessage={ConfirmationMessage.CONFIRM_DELETE} cancel={() => { setShowDeleteConfirmationModal(false); }} confirm={() => { deleteMeeting(); }} />
           </Modal>
           {meetingsData.length > 0 && (
-            <div>
-              <div className="shadow-lg overflow-hidden">
-                <table className="table border-separate border-spacing-x-0 border-spacing-y-0.5 text-sm px-[50px]">
-                  <thead className="bg-primaryColor bg-gradient-to-r from-primaryColor to-white">
+            <div className="shadow-lg overflow-x-auto w-[90%]">
+                <table className="min-w-full table border-separate border-spacing-x-0 border-spacing-y-0.5 text-sm">
+                <thead className="bg-primaryColor bg-gradient-to-r from-primaryColor to-white">
                     <tr>
-                      {columns.map((key: string, index: number) => (
+                    {columns.map((key: string, index: number) => (
                         <th
-                          key={index}
-                          scope="col"
-                          className="px-6 py-3 text-sm font-semibold tracking-wider cursor-pointer"
-                          onClick={() => handleSort(key)}
+                        key={index}
+                        scope="col"
+                        className="py-3 text-sm font-semibold tracking-wider cursor-pointer"
+                        onClick={() => handleSort(key)}
                         >
-                          {String(key).toUpperCase()}
-                          {sortKey === key && (
-                            <span className="ml-1">
-                              {sortDirection === "asc" ? "↑" : "↓"}
+                        {String(key).toUpperCase()}
+                        {sortKey === key && (
+                            <span>
+                            {sortDirection === "asc" ? "↑" : "↓"}
                             </span>
-                          )}
+                        )}
                         </th>
-                      ))}
-                      <th>
+                    ))}
+                    <th>
                         ACTIONS
-                      </th>
+                    </th>
                     </tr>
-                  </thead>
-                  <tbody>
+                </thead>
+                <tbody>
                     {meetingsData.map((item, index) => (
-                      <tr key={index} className="bg-gradient-to-r from-tableGradientFrom to-tableGradientTo cursor-pointer">
+                    <tr key={index} className="bg-gradient-to-r from-tableGradientFrom to-tableGradientTo cursor-pointer">
                         {columns.map((key: any, index: number) => (
-                          <td
+                        <td
                             key={index}
-                            className={`px-6 py-4 ${
-                              String(item[key as keyof Meeting] || "").length >
-                              100
+                            className={`py-[10px] ${
+                            String(item[key as keyof Meeting] || "").length >
+                            100
                                 ? "whitespace-normal"
                                 : "whitespace-nowrap"
                             } text-sm`}
-                          >
-                            <div className="flex items-center rounded-[10px]">
-                              <p className="overflow-ellipsis overflow-hidden whitespace-normal">
+                        >
+                            <div className="flex items-center justify-center rounded-[10px]">
+                            <p className="overflow-ellipsis overflow-hidden whitespace-normal">
                                 {getFormatedValue(key, item)}
-                              </p>
+                            </p>
                             </div>
-                          </td>
+                        </td>
                         ))}
-                        <td className="flex items-center mt-[16px]">
+                        <td className="flex items-center justify-center py-[10px]">
                         {canUpdateMeeting(item) && <span><img onClick={() => triggerUpdate(item)} alt="edit" className="h-[16px] w-[16px] mr-[10px]" src={require("../assets/images/edit.png")} /></span>}
                         {canDeleteMeeting(item) && <span><img onClick={() => triggerDelete(item)} alt="delete" className="h-[16px] w-[16px]" src={require("../assets/images/bin.png")} /></span>}
                     </td>
-                      </tr>
+                    </tr>
                     ))}
-                  </tbody>
+                </tbody>
                 </table>
-              </div>
             </div>
-          )}
+            )}
           {meetingsData.length === 0 && <div>
             <div>
                 <p className="text-[24px] text-primaryColor font-bold">No meetings scheduled yet!</p>
