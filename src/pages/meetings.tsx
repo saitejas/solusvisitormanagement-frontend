@@ -29,8 +29,8 @@ export const MeetingsPage = () => {
 
     return (
         <div>
-            <Modal center open={showModal} onClose={() => setShowModal(false)}>
-                <MeetingForm />
+            <Modal center closeOnOverlayClick={false} open={showModal} onClose={() => setShowModal(false)}>
+                <MeetingForm closeModal={() => { setShowModal(false); retrieveMeetings(); }} />
             </Modal>
             {user === userType.EMPLOYEE && <div>
                 <button onClick={() => setShowModal(true)}>Create Meeting</button>

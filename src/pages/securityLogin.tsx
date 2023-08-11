@@ -25,9 +25,7 @@ export const SecurityLoginPage = () => {
                 navigate('/meetings');
             }
             
-        } catch (error) {
-            console.log({ error });
-        }
+        } catch (error) {}
     }
 
     return (
