@@ -1,47 +1,31 @@
-import React from "react";
-import { useFormik } from "formik";
+import React from 'react';
+import { Meeting } from '../models/meeting.model';
 import * as yup from 'yup';
-import { Gender, MeetingStatus, ToastMessage, VisitorStatus, VisitorType } from "../constants/enum";
-import { DatePicker } from "antd";
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-import type { RangePickerProps } from 'antd/es/date-picker';
-import axios from 'axios';
-import { SOLUS_HOST } from "../constants/server";
-import { toast } from 'react-toastify';
-dayjs.extend(customParseFormat);
+import { useFormik } from 'formik';
+import { VisitorType, Gender, VisitorStatus, userType } from '../constants/enum';
+import { readFromStorage } from '../service/localstorage';
 
-export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
-
-    const { RangePicker } = DatePicker;
-
-    // const range = (start: number, end: number) => {
-    //     const result = [];
-    //     for (let i = start; i < end; i++) {
-    //       result.push(i);
-    //     }
-    //     return result;
-    //   };
-
+export const EditMeeting = ({ closeModal, updateData, meeting }: { closeModal: any, updateData: any, meeting: Meeting | undefined }) => {
+    const typeOfUser = readFromStorage('userType');
     const initialValues = {
-        visitorType: 'General',
-        visitorName: '',
-        mobileNumber: undefined,
-        emailId: '',
-        gender: '',
-        bloodGroup: '',
-        visitorStatus: VisitorStatus.PENDING,
-        meetingStatus: MeetingStatus.PENDING,
-        toMeet: '',
-        fromDateTime: undefined,
-        toDateTime: undefined
+        _id: meeting?._id,
+        visitorType: meeting?.visitorType,
+        visitorName:  meeting?.visitorName,
+        mobileNumber: meeting?.mobileNumber,
+        emailId: meeting?.emailId,
+        gender:  meeting?.gender,
+        bloodGroup: meeting?.bloodGroup,
+        visitorStatus:  meeting?.visitorStatus,
+        meetingStatus: meeting?.meetingStatus,
+        toMeet:  meeting?.toMeet,
+        fromDateTime:  meeting?.fromDateTime,
+        toDateTime:  meeting?.toDateTime
     }
 
-    const validationSchema = yup.object().shape({
+    const employeeValidationSchema = yup.object().shape({
         visitorType: yup.string().required('Visitor Type is required'),
         visitorName: yup.string().required('Visitor Name is required'),
         emailId: yup.string().email('Invalid email').required('Email is required'),
-        mobileNumber: yup.number().test('length', 'Phone number must be exactly 10 digits', val => val?.toString().length === 10).required('Name is required'),
         gender: yup.string().required('Specifying gender is required'),
         bloodGroup: yup.string().required('Blood Group is required'),
         toMeet: yup.string().required('Please mention the person whom you like to meet'),
@@ -49,44 +33,28 @@ export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
         toDateTime: yup.number().test('length', 'Provide a valid ending date and time', val => val?.toString().length === 10).required('To Date is required'),
       });
 
+      const securityValidationSchema = yup.object().shape({
+        visitorStatus: yup.string().required('Visitor Status is required'),
+      });
+
     const formik = useFormik({
         initialValues,
-        validationSchema,
+        validationSchema: typeOfUser === userType.EMPLOYEE ? employeeValidationSchema : securityValidationSchema,
         onSubmit: (values) => {
-            scheduleMeeting(values);
+            updateData(values);
         }
     });
 
-    const scheduleMeeting = async(payload: any) => {
-        try {
-            await axios.post(`${SOLUS_HOST}/meetings`, payload);
-            toast(ToastMessage.CREATION_SUCCESSFUL);
-            closeModal();
-        } catch (error) {
-            toast(ToastMessage.CREATION_UNSUCCESSFUL);
-        }
-    };
-
-    const disabledDate: RangePickerProps['disabledDate'] = (current) => {
-        const endOfPreviousDay = dayjs().subtract(1, 'day').endOf('day');
-        return current && current < endOfPreviousDay
-    };
-
-    const onRangeChange = (dates: any, setFieldValue: any) => {
-        setFieldValue('fromDateTime', dates[0].unix());
-        setFieldValue('toDateTime', dates[1].unix());
-    }
-
     return (
         <div>
-            <div className="text-center text-[30px] font-extrabold text-primaryColor">Schedule a meeting</div>
+            <div className="text-center text-[30px] font-extrabold text-primaryColor min-w-[350px]">Update meeting</div>
             <form onSubmit={formik.handleSubmit}>
-                <div className="my-[5px]">
+                {typeOfUser === userType.EMPLOYEE && <div className="my-[5px]">
                     <label htmlFor="name">Visitor Name</label>
                     <input className={`w-full p-2 border rounded ${formik.touched.visitorName && formik.errors.visitorName ? 'border border-errorRed': ''}`} type="text" id="visitorName" name="visitorName" onBlur={formik.handleBlur} value={formik.values.visitorName} onChange={formik.handleChange} />
-                </div>
+                </div>}
                 {formik.touched.visitorName && formik.errors.visitorName ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.visitorName}</p> : null}
-                <div className="my-[5px]">
+                {typeOfUser === userType.EMPLOYEE && <div className="my-[5px]">
                     <label htmlFor="visitorType">Visitor Type</label>
                     <select name="visitorType" id="visitorType"
                         className={`px-3 py-2 border rounded w-full ${formik.touched.visitorType && formik.errors.visitorType ? 'border border-errorRed': ''}`}
@@ -97,9 +65,25 @@ export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
                         <option value={VisitorType.GENERAL}>General</option>
                         <option value={VisitorType.VISITOR}>Visitor</option>
                     </select>
-                </div>
+                </div>}
                 {formik.touched.visitorType && formik.errors.visitorType ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.visitorType}</p> : null}
-                <div className="my-[5px]">
+                {typeOfUser === userType.SECURITY && <div className="my-[5px]">
+                    <label htmlFor="visitorStatus">Visitor Status</label>
+                    <select name="visitorStatus" id="visitorType"
+                        className={`px-3 py-2 border rounded w-full ${formik.touched.visitorStatus && formik.errors.visitorStatus ? 'border border-errorRed': ''}`}
+                        onBlur={formik.handleBlur}
+                        value={formik.values.visitorStatus}
+                        onChange={(event) => { formik.setFieldValue('visitorStatus', event.target.value); formik.setFieldValue('meetingStatus', event.target.value) }}
+                    >
+                        <option value={VisitorStatus.PENDING}>Pending</option>
+                        <option value={VisitorStatus.CANCELLED}>Cancel</option>
+                        <option value={VisitorStatus.REJECTED}>Reject</option>
+                        <option value={VisitorStatus.SIGNED_IN}>Signed In</option>
+                        <option value={VisitorStatus.SIGNED_OUT}>Signed Out</option>
+                    </select>
+                </div>}
+                {formik.touched.visitorType && formik.errors.visitorType ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.visitorType}</p> : null}
+                {typeOfUser === userType.EMPLOYEE && <div className="my-[5px]">
                     <label htmlFor="gender">Gender</label>
                     <select name="gender" id="gender"
                         className={`px-3 py-2 border rounded w-full ${formik.touched.gender && formik.errors.gender ? 'border border-errorRed': ''}`}
@@ -112,42 +96,28 @@ export const MeetingForm = ({ closeModal }: { closeModal: any }) => {
                         <option value={Gender.FEMALE}>Female</option>
                         <option value={Gender.OTHER}>Other</option>
                     </select>
-                </div>
+                </div>}
                 {formik.touched.gender && formik.errors.gender ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.gender}</p> : null}
-                <div className="my-[5px]">
+                {typeOfUser === userType.EMPLOYEE && <div className="my-[5px]">
                     <label htmlFor="email">Email ID</label>
                     <input type="text" id="emailId" name="emailId" className={`w-full p-2 border rounded ${formik.touched.emailId && formik.errors.emailId ? 'border border-errorRed': ''}`} onBlur={formik.handleBlur} value={formik.values.emailId} onChange={formik.handleChange} />
-                </div>
+                </div>}
                 {formik.touched.emailId && formik.errors.emailId ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.emailId}</p> : null}
-                <div className="my-[5px]">
-                    <label htmlFor="mobileNumber">Mobile Number</label>
-                    <input type="number" id="mobileNumber" name="mobileNumber" className={`w-full p-2 border rounded ${formik.touched.mobileNumber && formik.errors.mobileNumber ? 'border border-errorRed': ''}`} onBlur={formik.handleBlur} value={formik.values.mobileNumber} onChange={formik.handleChange} />
-                </div>
-                {formik.touched.mobileNumber && formik.errors.mobileNumber ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.mobileNumber}</p> : null}
-                <div className="my-[5px]">
-                    <label htmlFor="fromDateTime">Meeting time and duration</label>
-                    <RangePicker size="large" className={`w-full p-2 border ${formik.touched.fromDateTime && formik.errors.fromDateTime ? 'border border-errorRed': ''}`}
-                        showTime 
-                        disabledDate={disabledDate}
-                        format="YYYY/MM/DD HH:mm"
-                        onChange={(event) => { onRangeChange(event, formik.setFieldValue) }}
-                    />
-                </div>
-                {formik.touched.fromDateTime && formik.errors.fromDateTime ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.fromDateTime}</p> : null}
-                <div className="my-[5px]">
+                {typeOfUser === userType.EMPLOYEE && <div className="my-[5px]">
                     <label htmlFor="bloodGroup">Blood Group</label>
                     <input type="text" id="bloodGroup" name="bloodGroup" className={`w-full p-2 border rounded ${formik.touched.bloodGroup && formik.errors.bloodGroup ? 'border border-errorRed': ''}`} onBlur={formik.handleBlur} value={formik.values.bloodGroup} onChange={formik.handleChange} />
-                </div>
+                </div>}
                 {formik.touched.bloodGroup && formik.errors.bloodGroup ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.bloodGroup}</p> : null}
-                <div className="my-[5px]">
+                {typeOfUser === userType.EMPLOYEE && <div className="my-[5px]">
                     <label htmlFor="toMeet">Whom are you visiting?</label>
                     <input type="text" id="toMeet" name="toMeet" className={`w-full p-2 border rounded ${formik.touched.toMeet && formik.errors.toMeet ? 'border border-errorRed': ''}`} onBlur={formik.handleBlur} value={formik.values.toMeet} onChange={formik.handleChange} />
-                </div>
+                </div>}
                 {formik.touched.toMeet && formik.errors.toMeet ? <p className="text-errorRed text-[11px] font-semibold font-bricolage">{formik.errors.toMeet}</p> : null}
                 <div>
-                    <button className="my-[5px] text-center bg-primaryColor text-white py-[10px] rounded text-[18px] w-full" type="submit">Submit</button>
+                    <button className="my-[5px] text-center bg-primaryColor text-white py-[10px] rounded text-[18px] w-full" type="submit">Update</button>
                 </div>
             </form>
         </div>
     )
+
 }

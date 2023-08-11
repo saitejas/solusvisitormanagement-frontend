@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SOLUS_HOST } from '../constants/server';
 import { readFromStorage, writeToStorage } from '../service/localstorage';
+import { toast } from 'react-toastify';
+import { ToastMessage } from '../constants/enum';
 
 export const SecurityLoginPage = () => {
     const [email, setEmail] = useState<string>('');
@@ -19,13 +21,20 @@ export const SecurityLoginPage = () => {
     const verifyAndLogin = async () => {
         try {
             if (email !== '' && password !== '') {
-                await axios.post(`${SOLUS_HOST}/authentication/verifyEmployee`, { email, password });
+                await axios.post(`${SOLUS_HOST}/authentication/verifySecurity`, { email, password });
                 writeToStorage('auth', 'true');
                 writeToStorage('userType', 'security');
                 navigate('/meetings');
             }
             
-        } catch (error) {}
+        } catch (error: any) {
+            const { response } = error;
+            if (response && response.status === 401) {
+                toast(ToastMessage.INVALID_CREDENTIALS);
+            } else {
+                toast(ToastMessage.PROBLEM_LOGGING_IN);
+            }
+        }
     }
 
     return (

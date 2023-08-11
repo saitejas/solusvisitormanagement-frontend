@@ -4,6 +4,8 @@ import axios from 'axios';
 import { SOLUS_HOST } from '../constants/server';
 import { useNavigate } from 'react-router-dom';
 import { readFromStorage, writeToStorage } from '../service/localstorage';
+import { toast } from 'react-toastify';
+import { ToastMessage } from '../constants/enum';
 
 export const EmployeeLoginPage = () => {
     const [email, setEmail] = useState<string>('');
@@ -25,7 +27,14 @@ export const EmployeeLoginPage = () => {
                 navigate('/meetings');
             }
             
-        } catch (error) {}
+        } catch (error: any) {
+            const { response } = error;
+            if (response && response.status === 401) {
+                toast(ToastMessage.INVALID_CREDENTIALS);
+            } else {
+                toast(ToastMessage.PROBLEM_LOGGING_IN);
+            }
+        }
     }
 
     return (

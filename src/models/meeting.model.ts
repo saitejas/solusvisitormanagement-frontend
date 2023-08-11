@@ -1,4 +1,5 @@
 export interface Meeting {
+  _id: string,
   visitorType: string;
   visitorName: string;
   mobileNumber: number;

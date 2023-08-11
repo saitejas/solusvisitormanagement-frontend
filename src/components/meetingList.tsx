@@ -3,17 +3,24 @@ import { Meeting } from "../models/meeting.model";
 import { getFormatedValue } from "../service/meeting";
 import { sortData } from "../service/util";
 import { readFromStorage } from "../service/localstorage";
-import { VisitorStatus, userType } from "../constants/enum";
-import { DatePicker } from "antd";
+import { ConfirmationMessage, ToastMessage, VisitorStatus, userType } from "../constants/enum";
+import { toast } from 'react-toastify';
+import axios from "axios";
+import { SOLUS_HOST } from "../constants/server";
+import Modal from "react-responsive-modal";
+import { EditMeeting } from "./editmeeting";
+import { ConfirmationModal } from "./confirmationModal";
 
 export function MeetingList({ data }: { data: Meeting[] }) {
     const columns = ['visitorName', 'mobileNumber', 'emailId', 'gender', 'bloodGroup', 'visitorStatus', 'fromDateTime', 'toDateTime', 'toMeet'];
+    const typeOfUser = readFromStorage('userType');
     const [sortKey, setSortKey] = useState<string>("");
     const [sortDirection, setSortDirection] = useState("asc");
     const [meetingsData, setMeetingsData] = useState<Meeting[]>(data);
-    const [origMeetingsData,] = useState<Meeting[]>(data);
-    const [startTimeToSearch, setStartTimeToSearch] = useState<number>();
-    const [endTimeToSearch, setEndTimeToSearch] = useState<number>();
+    const [showEditModal, setShowEditModal] = useState<boolean>(false);
+    const [meetingToBeUpdated, setMeetingToBeUpdated] = useState<Meeting>();
+    const [meetingToBeDeleted, setMeetingToBeDeleted] = useState<Meeting>();
+    const [showDeleteConfirmation, setShowDeleteConfirmationModal] = useState<boolean>(false);
 
     useEffect(() => {
         const sorted = sortData(data, sortKey, sortDirection);
@@ -30,49 +37,73 @@ export function MeetingList({ data }: { data: Meeting[] }) {
     };
 
     const canDeleteMeeting = (meeting: Meeting): boolean => {
-        if (readFromStorage('userType') === userType.EMPLOYEE && meeting.visitorStatus === VisitorStatus.PENDING) {
+        if (typeOfUser === userType.EMPLOYEE && meeting.visitorStatus === VisitorStatus.PENDING) {
             return true;
         }
         return false;
     }
 
-    const filterDateRange = () => {
-        console.log({ startTimeToSearch, endTimeToSearch })
-        if (startTimeToSearch && endTimeToSearch && startTimeToSearch < endTimeToSearch) {
-            const filteredMeetings = meetingsData.filter((meeting: Meeting) => meeting.fromDateTime >= startTimeToSearch && meeting.toDateTime <= endTimeToSearch)
-            setMeetingsData(filteredMeetings);
-        } else if (startTimeToSearch || endTimeToSearch) {
-            if (startTimeToSearch) setMeetingsData(meetingsData.filter((meeting: Meeting) => meeting.fromDateTime >= startTimeToSearch))
-            if (endTimeToSearch) setMeetingsData(meetingsData.filter((meeting: Meeting) => meeting.toDateTime <= endTimeToSearch))
-        } 
+    const canUpdateMeeting = (meeting: Meeting): boolean => {
+        if (typeOfUser === userType.SECURITY || (typeOfUser === userType.EMPLOYEE && meeting.visitorStatus === VisitorStatus.PENDING)) {
+            return true;
+        }
+        return false;
     }
 
-    const clearFilters = () => {
-        window.location.reload();
+
+    const deleteMeeting = async (id: string | undefined) => {
+        try {
+            setShowDeleteConfirmationModal(false);
+            await axios.delete(`${SOLUS_HOST}/meetings/${id}`);
+            const index = meetingsData.findIndex((meeting: Meeting) => meeting._id === id);
+            if (index === 0) { 
+                setMeetingsData([]);
+            } else if (index !== -1) {
+                const newMeetingsData = meetingsData.splice(index, 1);
+                setMeetingsData(newMeetingsData);
+            }
+            toast(ToastMessage.DELETE_SUCCESSFUL);
+        } catch (error) {
+            toast(ToastMessage.DELETE_UNSUCCESSFUL);
+        }
+    }
+
+    const triggerUpdate = (meeting: Meeting) => {
+        setMeetingToBeUpdated(meeting);
+        setTimeout(() => {
+            setShowEditModal(true);
+        }, 1000)
+    }
+
+    const triggerDelete = (meeting: Meeting) => {
+        setMeetingToBeDeleted(meeting);
+        setTimeout(() => {
+            setShowDeleteConfirmationModal(true);
+        }, 1000)
+    }
+
+    const updateMeeting = async (meeting: Meeting) => {
+        try {
+            await axios.patch(`${SOLUS_HOST}/meetings/${meeting._id}`, meeting);
+            setShowEditModal(false);
+            const index = meetingsData.findIndex((meetingObj: Meeting) => meeting._id === meetingObj._id);
+            const newMeetingsData = [...meetingsData];
+            newMeetingsData[index] = meeting;
+            setMeetingsData(newMeetingsData);
+            toast(ToastMessage.UPDATE_SUCCESSFUL);
+        } catch (error) {
+            toast(ToastMessage.UPDATE_UNSUCCESSFUL);
+        }
     }
 
     return (
         <div>
-          <div className="flex my-[30px] items-center">
-            <DatePicker
-                showTime
-                name="fromDate"
-                className="m-[10px]"
-                size="large"
-                format="YYYY/MM/DD HH:mm"
-                onChange={(event) => setStartTimeToSearch(event?.unix())}
-            />
-            <DatePicker
-                showTime
-                name="toDate"
-                className="m-[10px]"
-                size="large"
-                format="YYYY/MM/DD HH:mm"
-                onChange={(event) => setEndTimeToSearch(event?.unix())}
-            />
-            <button className="bg-primaryColor text-white px-[26px] py-[6px] rounded mr-[10px]" onClick={filterDateRange}>Apply Date Search</button>
-            <button className="border-[2px] border-primaryColor text-primaryColor px-[26px] py-[4px] rounded" onClick={clearFilters}>Clear</button>
-          </div>
+          <Modal center closeOnOverlayClick={false} open={showEditModal} onClose={() => setShowEditModal(false)}>
+                <EditMeeting meeting={meetingToBeUpdated} closeModal={() => { setShowEditModal(false); }} updateData={(meeting: Meeting) => updateMeeting(meeting)} />
+          </Modal>
+          <Modal center closeOnOverlayClick={false} open={showDeleteConfirmation} onClose={() => setShowDeleteConfirmationModal(false)}>
+                <ConfirmationModal confirmationMessage={ConfirmationMessage.CONFIRM_DELETE} cancel={() => { setShowDeleteConfirmationModal(false); }} confirm={() => deleteMeeting(meetingToBeDeleted?._id)} />
+          </Modal>
           {meetingsData.length > 0 && (
             <div>
               <div className="shadow-lg overflow-hidden">
@@ -105,9 +136,6 @@ export function MeetingList({ data }: { data: Meeting[] }) {
                         {columns.map((key: any, index: number) => (
                           <td
                             key={index}
-                            // onClick={() =>
-                            //   onSelectingAPlayer(paginatedData[index])
-                            // }
                             className={`px-6 py-4 ${
                               String(item[key as keyof Meeting] || "").length >
                               100
@@ -123,47 +151,24 @@ export function MeetingList({ data }: { data: Meeting[] }) {
                           </td>
                         ))}
                         <td className="flex items-center mt-[16px]">
-                        <span><img alt="edit" className="h-[16px] w-[16px] mr-[10px]" src={require("../assets/images/edit.png")} /></span>
-                        {canDeleteMeeting(item) && <span><img alt="delete" className="h-[16px] w-[16px]" src={require("../assets/images/bin.png")} /></span>}
+                        {canUpdateMeeting(item) && <span><img onClick={() => triggerUpdate(item)} alt="edit" className="h-[16px] w-[16px] mr-[10px]" src={require("../assets/images/edit.png")} /></span>}
+                        {canDeleteMeeting(item) && <span><img onClick={() => deleteMeeting(item._id)} alt="delete" className="h-[16px] w-[16px]" src={require("../assets/images/bin.png")} /></span>}
                     </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              {/* <div className="my-4 flex justify-center">
-                <nav className="inline-flex rounded-md shadow bg-gradient-to-r from-tableGradientFrom to-tableGradientTo text-white">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 bg-transparent text-gray-500 rounded-l-md"
-                  >
-                    {"<"}
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handlePageChange(i + 1)}
-                      className={`px-4 py-2 ${
-                        currentPage === i + 1
-                          ? "bg-white text-black"
-                          : "bg-tableGradientFrom text-white"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 bg-transparent text-gray-500 rounded-r-md"
-                  >
-                    {">"}
-                  </button>
-                </nav>
-              </div> */}
             </div>
           )}
+          {meetingsData.length === 0 && <div>
+            <div>
+                <p className="text-[24px] text-primaryColor font-bold">No meetings scheduled yet!</p>
+            </div>
+            <div className="flex justify-center">
+                <img alt="noData" className="w-[50%]" src={require("../assets/images/noDataFound.avif")} />
+            </div>
+          </div>}
         </div>
       );
 }
